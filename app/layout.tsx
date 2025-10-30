@@ -8,7 +8,7 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "RealEstate Web3 - Tokenized Property Investment",
+  title: "Assets IQ - Tokenized Property Investment",
   description: "Invest in tokenized real estate properties with Web3",
   generator: "v0.app",
 }
