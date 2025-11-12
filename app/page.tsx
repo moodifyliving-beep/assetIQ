@@ -12,6 +12,7 @@ import { MarketInsightsWidget } from "@/components/chat/market-insights-widget"
 import { InvestmentRecommendations } from "@/components/chat/investment-recommendations"
 import Link from "next/link"
 
+
 const featuredAssets = assets.slice(0, 3)
 
 export default function Dashboard() {

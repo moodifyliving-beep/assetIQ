@@ -3,6 +3,7 @@
 import { Wallet, User, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { WalletConnect } from "@/components/WalletConnect"
 
 export function Navbar() {
   const handleConnectWallet = () => {
@@ -18,10 +19,8 @@ export function Navbar() {
       <div className="flex-1" />
 
       <div className="flex items-center gap-4">
-        <Button onClick={handleConnectWallet} className="gap-2 bg-primary hover:bg-primary/90">
-          <Wallet size={18} />
-          <span className="hidden sm:inline">Connect Wallet</span>
-        </Button>
+
+        <WalletConnect />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
