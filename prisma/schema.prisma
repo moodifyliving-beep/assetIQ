@@ -1,0 +1,186 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  walletAddress String     @unique
+  email         String?
+  name          String?
+  role          UserRole   @default(USER)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  properties    Property[]
+  investments   Investment[]
+  
+  @@index([role])
+}
+
+model Property {
+  id              String       @id @default(auto()) @map("_id") @db.ObjectId
+  title           String
+  description     String
+  location        String
+  assetValue      Float
+  totalShares     Int
+  availableShares Int
+  pricePerShare   Float
+  images          String[]
+  documents       Document[]
+  status          PropertyStatus @default(PENDING)
+  tokenAddress    String?
+  chainId         Int?
+  
+  // Approval tracking
+  submittedAt     DateTime     @default(now())
+  reviewedAt      DateTime?
+  reviewedById    String?      @db.ObjectId
+  rejectionReason String?
+  
+  ownerId         String       @db.ObjectId
+  owner           User         @relation(fields: [ownerId], references: [id])
+  
+  investments     Investment[]
+  activityLogs    PropertyActivityLog[]
+  royaltyPayments RoyaltyPayment[]
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  @@index([ownerId])
+  @@index([status])
+  @@index([submittedAt])
+}
+
+model Document {
+  id          String       @id @default(auto()) @map("_id") @db.ObjectId
+  type        DocumentType
+  name        String
+  url         String
+  verified    Boolean      @default(false)
+  verifiedAt  DateTime?
+  verifiedBy  String?
+  uploadedAt  DateTime     @default(now())
+  
+  propertyId  String       @db.ObjectId
+  property    Property     @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  
+  @@index([propertyId])
+}
+
+model PropertyActivityLog {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  action      String   // e.g., "SUBMITTED", "APPROVED", "REJECTED", "DOCUMENT_VERIFIED"
+  description String
+  performedBy String?  // Wallet address or "SYSTEM"
+  metadata    Json?    // Additional data
+  
+  propertyId  String   @db.ObjectId
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([propertyId])
+  @@index([createdAt])
+}
+
+model Investment {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  shares          Int
+  investmentAmount Float
+  transactionHash String?
+  paymentMethod    PaymentMethod
+  paymentStatus    PaymentStatus @default(PENDING)
+  stripePaymentId  String?
+  
+  userId          String   @db.ObjectId
+  user            User     @relation(fields: [userId], references: [id])
+  
+  propertyId      String   @db.ObjectId
+  property        Property @relation(fields: [propertyId], references: [id])
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([userId])
+  @@index([propertyId])
+}
+
+model NFTMetadata {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  tokenId         String   @unique
+  name            String
+  description     String
+  image           String
+  attributes      Json     // Store NFT attributes
+  
+  propertyId      String   @db.ObjectId
+  ownerId         String   @db.ObjectId
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([propertyId])
+  @@index([ownerId])
+}
+
+
+model RoyaltyPayment {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  amount      Float
+  description String?
+  transactionHash String?
+  
+  propertyId  String   @db.ObjectId
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([propertyId])
+  @@index([createdAt])
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum PropertyStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  TOKENIZED
+  FUNDED
+  CLOSED
+}
+
+enum DocumentType {
+  TITLE_DEED
+  OWNERSHIP_PROOF
+  VALUATION_REPORT
+  LEGAL_DOCUMENT
+  INSURANCE
+  OTHER
+}
+
+enum PaymentMethod {
+  CRYPTO_ETH
+  CRYPTO_USDC
+  CRYPTO_USDT
+  STRIPE_CARD
+  STRIPE_BANK
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+}

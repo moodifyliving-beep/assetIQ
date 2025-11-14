@@ -1,4 +1,4 @@
-// app/add-property/page.tsx
+// app/properties/[id]/edit/page.tsx
 "use client"
 
 import type React from "react"
@@ -8,19 +8,24 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ImageUpload } from "@/components/forms/image-upload"
 import { DocumentVerification } from "@/components/forms/document-verification"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAccount } from "wagmi"
 import { useAppKit } from "@reown/appkit/react"
 import { toast } from "sonner"
-import { Loader2 } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { Loader2, ArrowLeft } from "lucide-react"
+import { useRouter, useParams } from "next/navigation"
+import Link from "next/link"
+import { Textarea } from "@/components/ui/textarea"
 
-export default function AddProperty() {
+export default function EditProperty() {
   const router = useRouter()
+  const params = useParams()
   const { address, isConnected } = useAccount()
   const { open } = useAppKit()
   
+  const [loading, setLoading] = useState(true)
+  const [property, setProperty] = useState<any>(null)
   const [formData, setFormData] = useState({
     title: "",
     location: "",
@@ -32,6 +37,45 @@ export default function AddProperty() {
   const [images, setImages] = useState<string[]>([])
   const [documents, setDocuments] = useState<any[]>([])
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (params.id) {
+      fetchProperty()
+    }
+  }, [params.id])
+
+  const fetchProperty = async () => {
+    try {
+      const response = await fetch(`/api/properties/${params.id}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch property')
+      }
+      
+      const data = await response.json()
+      setProperty(data)
+      
+      // Pre-populate form
+      setFormData({
+        title: data.title || "",
+        location: data.location || "",
+        price: data.assetValue?.toString() || "",
+        description: data.description || "",
+        shares: data.totalShares?.toString() || "",
+      })
+      setImages(data.images || [])
+      setDocuments(data.documents?.map((doc: any) => ({
+        type: doc.type,
+        name: doc.name,
+        url: doc.url
+      })) || [])
+    } catch (error) {
+      console.error('Error fetching property:', error)
+      toast.error('Failed to load property')
+      router.push('/my-properties')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -45,6 +89,13 @@ export default function AddProperty() {
     if (!isConnected || !address) {
       toast.error("Please connect your wallet first")
       open()
+      return
+    }
+
+    // Verify ownership
+    if (property && property.owner.walletAddress.toLowerCase() !== address.toLowerCase()) {
+      toast.error("You don't have permission to edit this property")
+      router.push('/my-properties')
       return
     }
 
@@ -64,11 +115,23 @@ export default function AddProperty() {
       return
     }
 
+    // Check if property has investments - if so, restrict certain edits
+    const hasInvestments = property?._count?.investments > 0 || property?.investments?.length > 0
+    const isApproved = property?.status === 'APPROVED' || property?.status === 'TOKENIZED' || property?.status === 'FUNDED'
+    
+    if (hasInvestments && isApproved) {
+      // Can't change shares or asset value if property is approved and has investments
+      if (parseFloat(formData.price) !== property.assetValue || parseInt(formData.shares) !== property.totalShares) {
+        toast.error("Cannot change asset value or total shares for properties with active investments")
+        return
+      }
+    }
+
     setSubmitting(true)
 
     try {
-      const response = await fetch('/api/properties', {
-        method: 'POST',
+      const response = await fetch(`/api/properties/${params.id}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -79,65 +142,91 @@ export default function AddProperty() {
           assetValue: parseFloat(formData.price),
           totalShares: parseInt(formData.shares),
           images,
-          documents,
-          walletAddress: address,
+          documents: documents.map(doc => ({
+            type: doc.type,
+            name: doc.name,
+            url: doc.url
+          })),
+          walletAddress: address, // For ownership verification
         }),
       })
 
       if (!response.ok) {
-        throw new Error('Failed to create property')
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to update property')
       }
 
-      const property = await response.json()
+      const updatedProperty = await response.json()
       
-      toast.success("Property listed successfully! Pending approval.")
+      toast.success("Property updated successfully!")
       
-      // Reset form
-      setFormData({
-        title: "",
-        location: "",
-        price: "",
-        description: "",
-        shares: "",
-      })
-      setImages([])
-      setDocuments([])
+      // Redirect to property detail page
+      router.push(`/asset/${params.id}`)
       
-      // Redirect to my properties
-      router.push('/my-properties')
-      
-    } catch (error) {
-      console.error('Error submitting property:', error)
-      toast.error("Failed to list property. Please try again.")
+    } catch (error: any) {
+      console.error('Error updating property:', error)
+      toast.error(error.message || "Failed to update property. Please try again.")
     } finally {
       setSubmitting(false)
     }
   }
 
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  if (!property) {
+    return (
+      <DashboardLayout>
+        <div className="text-center py-12">
+          <h2 className="text-2xl font-bold mb-2 text-foreground">Property Not Found</h2>
+          <p className="text-muted-foreground mb-4">The property you're looking for doesn't exist</p>
+          <Link href="/my-properties">
+            <Button>Back to My Properties</Button>
+          </Link>
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  const hasInvestments = property?._count?.investments > 0 || property?.investments?.length > 0
+  const isApproved = property?.status === 'APPROVED' || property?.status === 'TOKENIZED' || property?.status === 'FUNDED'
+  const canEditShares = !hasInvestments || !isApproved
+
   return (
     <DashboardLayout>
       <div className="space-y-8">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Add Asset</h1>
-          <p className="text-muted-foreground">
-            Tokenize and list a new asset for investment with full documentation.
-          </p>
+        <div className="flex items-center gap-4">
+          <Link href="/my-properties">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Edit Property</h1>
+            <p className="text-muted-foreground">
+              Update your property listing information
+            </p>
+          </div>
         </div>
 
-        {/* Wallet Connection Warning */}
-        {/* {!isConnected && (
-          <Card className="bg-yellow-50 border-yellow-200">
+        {/* Status Warning */}
+        {isApproved && hasInvestments && (
+          <Card className="bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800">
             <CardContent className="pt-6">
-              <p className="text-yellow-800">
-                ⚠️ Please connect your wallet to list a property
+              <p className="text-yellow-800 dark:text-yellow-300 text-sm">
+                ⚠️ This property is approved and has active investments. Some fields (Asset Value, Total Shares) cannot be modified to protect investor interests.
               </p>
-              <Button onClick={() => open()} className="mt-3">
-                Connect Wallet
-              </Button>
             </CardContent>
           </Card>
-        )} */}
+        )}
 
         {/* Form */}
         <Tabs defaultValue="details" className="w-full">
@@ -187,6 +276,9 @@ export default function AddProperty() {
                     <div>
                       <label className="block text-sm font-medium text-foreground mb-2">
                         Asset Value <span className="text-red-500">*</span>
+                        {!canEditShares && (
+                          <span className="text-xs text-muted-foreground ml-2">(Locked)</span>
+                        )}
                       </label>
                       <Input
                         name="price"
@@ -196,11 +288,15 @@ export default function AddProperty() {
                         placeholder="1000000"
                         className="bg-input border-border"
                         required
+                        disabled={!canEditShares}
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-foreground mb-2">
                         Total Shares <span className="text-red-500">*</span>
+                        {!canEditShares && (
+                          <span className="text-xs text-muted-foreground ml-2">(Locked)</span>
+                        )}
                       </label>
                       <Input
                         name="shares"
@@ -210,6 +306,7 @@ export default function AddProperty() {
                         placeholder="1000"
                         className="bg-input border-border"
                         required
+                        disabled={!canEditShares}
                       />
                     </div>
                   </div>
@@ -218,13 +315,13 @@ export default function AddProperty() {
                     <label className="block text-sm font-medium text-foreground mb-2">
                       Description
                     </label>
-                    <textarea
+                    <Textarea
                       name="description"
                       value={formData.description}
                       onChange={handleChange}
                       placeholder="Describe your asset..."
                       rows={4}
-                      className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="bg-input border-border"
                     />
                   </div>
                 </form>
@@ -278,16 +375,16 @@ export default function AddProperty() {
             {submitting ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Listing Asset...
+                Updating Property...
               </>
             ) : (
-              'List Asset'
+              'Update Property'
             )}
           </Button>
           <Button 
             type="button" 
             variant="outline"
-            onClick={() => router.push('/dashboard')}
+            onClick={() => router.push('/my-properties')}
           >
             Cancel
           </Button>
@@ -296,3 +393,4 @@ export default function AddProperty() {
     </DashboardLayout>
   )
 }
+

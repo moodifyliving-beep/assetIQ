@@ -2,8 +2,9 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useState } from "react"
-import { LayoutDashboard, ShoppingCart, Home, Plus, TrendingUp, Coins, Menu, X, MessageCircle } from "lucide-react"
+import { useState, useEffect } from "react"
+import { useAccount } from "wagmi"
+import { LayoutDashboard, ShoppingCart, Home, Plus, TrendingUp, Coins, Menu, X, MessageCircle, Shield, Users, FileText } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const menuItems = [
@@ -16,9 +17,44 @@ const menuItems = [
   { label: "AI Assistant", href: "/chat", icon: MessageCircle },
 ]
 
+const adminMenuItems = [
+  { label: "Admin Dashboard", href: "/admin", icon: Shield },
+  { label: "Admin Properties", href: "/admin/properties", icon: FileText },
+  { label: "Admin Users", href: "/admin/users", icon: Users },
+]
+
 export function Sidebar() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
+  const { address, isConnected } = useAccount()
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    if (isConnected && address) {
+      checkAdminStatus()
+    } else {
+      setIsAdmin(false)
+    }
+  }, [isConnected, address])
+
+  const checkAdminStatus = async () => {
+    try {
+      const response = await fetch('/api/admin/check', {
+        headers: {
+          'x-wallet-address': address || ''
+        }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setIsAdmin(data.isAdmin || false)
+      } else {
+        setIsAdmin(false)
+      }
+    } catch {
+      setIsAdmin(false)
+    }
+  }
 
   return (
     <>
@@ -29,7 +65,6 @@ export function Sidebar() {
       >
         {isOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
-
       {/* Sidebar */}
       <aside
         className={cn(
@@ -39,8 +74,8 @@ export function Sidebar() {
         )}
       >
         <div className="p-6 border-b border-sidebar-border">
-          <h1 className="text-2xl font-bold text-sidebar-foreground">RealEstate</h1>
-          <p className="text-xs text-sidebar-accent-foreground opacity-60">Web3 Investing</p>
+          <h1 className="text-2xl font-bold text-sidebar-foreground">AssetsIQ</h1>
+          <p className="text-xs text-sidebar-accent-foreground opacity-60">Tokenized property Investing</p>
         </div>
 
         <nav className="p-4 space-y-2">
@@ -64,6 +99,39 @@ export function Sidebar() {
               </Link>
             )
           })}
+
+          {/* Admin Section */}
+          {isAdmin && (
+            <>
+              <div className="pt-4 mt-4 border-t border-sidebar-border">
+                <div className="px-4 py-2">
+                  <p className="text-xs font-semibold text-sidebar-accent-foreground uppercase tracking-wider opacity-60">
+                    Admin
+                  </p>
+                </div>
+              </div>
+              {adminMenuItems.map((item) => {
+                const Icon = item.icon
+                const isActive = pathname === item.href
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setIsOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
+                      isActive
+                        ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent",
+                    )}
+                  >
+                    <Icon size={20} />
+                    <span className="font-medium">{item.label}</span>
+                  </Link>
+                )
+              })}
+            </>
+          )}
         </nav>
       </aside>
 
