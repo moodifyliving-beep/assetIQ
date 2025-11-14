@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "NODE_OPTIONS=--max-old-space-size=4096 next build",
-    "dev": "NODE_OPTIONS=--max-old-space-size=4096 next dev",
+    "postinstall": "prisma generate",
+    "build": "prisma generate && NODE_OPTIONS=--max-old-space-size=4096 next build",
+    "dev": "prisma generate && NODE_OPTIONS=--max-old-space-size=4096 next dev",
     "lint": "eslint .",
     "start": "next start"
   },

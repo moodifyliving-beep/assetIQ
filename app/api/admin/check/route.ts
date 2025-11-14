@@ -2,6 +2,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+// Force dynamic rendering to prevent build-time database connection attempts
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
 export async function GET(req: NextRequest) {
   try {
     const walletAddress = req.headers.get('x-wallet-address')
