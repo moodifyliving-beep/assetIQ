@@ -30,15 +30,30 @@ export async function POST(req: NextRequest) {
     // Normalize wallet address to lowercase for consistency
     const normalizedWalletAddress = walletAddress.toLowerCase()
     
-    // Find or create user
+    // Find or create user with unique email
     let user = await prisma.user.findUnique({
       where: { walletAddress: normalizedWalletAddress }
     })
 
     if (!user) {
-      user = await prisma.user.create({
-        data: { walletAddress: normalizedWalletAddress }
+      // Generate unique placeholder email for wallet-only users
+      const placeholderEmail = `wallet-${normalizedWalletAddress}@assetsiq.local`
+      
+      // Check if email exists (shouldn't happen, but be safe)
+      const existingUser = await prisma.user.findUnique({
+        where: { email: placeholderEmail }
       })
+      
+      if (existingUser) {
+        user = existingUser
+      } else {
+        user = await prisma.user.create({
+          data: { 
+            walletAddress: normalizedWalletAddress,
+            email: placeholderEmail, // Unique email required for Better Auth
+          }
+        })
+      }
     }
 
     // Calculate price per share
