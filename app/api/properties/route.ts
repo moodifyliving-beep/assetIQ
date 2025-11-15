@@ -105,7 +105,13 @@ export async function GET(req: NextRequest) {
     }
 
     if (status) {
-      where.status = status
+      // Support multiple statuses (comma-separated) for marketplace queries
+      const statuses = status.split(',').map(s => s.trim())
+      if (statuses.length === 1) {
+        where.status = statuses[0]
+      } else {
+        where.status = { in: statuses }
+      }
     }
 
     const properties = await prisma.property.findMany({
