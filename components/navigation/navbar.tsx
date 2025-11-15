@@ -1,15 +1,17 @@
 "use client"
 
-import { Wallet, User, LogOut, Mail } from "lucide-react"
+import { Wallet, User, LogOut, Mail, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { WalletConnect } from "@/components/WalletConnect"
 import { useSession, signOut } from "@/lib/auth-client"
+import { useAccount } from "wagmi"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
 export function Navbar() {
   const { data: session, isPending } = useSession()
+  const { address, isConnected } = useAccount()
   const router = useRouter()
 
   const handleLogout = async () => {
@@ -41,12 +43,18 @@ export function Navbar() {
                 <DropdownMenuContent align="end" className="w-56">
                   <div className="px-2 py-1.5">
                     <p className="text-sm font-medium">{session.user.name || "User"}</p>
-                    <p className="text-xs text-muted-foreground">{session.user.email}</p>
+                    <p className="text-xs text-muted-foreground">{session.user.email || session.user.walletAddress?.slice(0, 6) + "..."}</p>
+                    {session.user.walletAddress && (
+                      <p className="text-xs text-muted-foreground font-mono mt-1">
+                        <Wallet className="inline h-3 w-3 mr-1" />
+                        {session.user.walletAddress.slice(0, 6)}...{session.user.walletAddress.slice(-4)}
+                      </p>
+                    )}
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => router.push("/profile")}>
-                    <User className="mr-2 h-4 w-4" />
-                    Profile
+                    <Settings className="mr-2 h-4 w-4" />
+                    {session.user.walletAddress && session.user.email ? "Update Profile" : "Complete Profile"}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
@@ -56,12 +64,21 @@ export function Navbar() {
               </DropdownMenu>
             ) : (
               <div className="flex items-center gap-2">
-                <Button variant="ghost" onClick={() => router.push("/login")} size="sm">
-                  Sign In
-                </Button>
-                <Button onClick={() => router.push("/signup")} size="sm">
-                  Sign Up
-                </Button>
+                {isConnected && address ? (
+                  <Button onClick={() => router.push("/profile")} size="sm">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Complete Profile
+                  </Button>
+                ) : (
+                  <>
+                    <Button variant="ghost" onClick={() => router.push("/login")} size="sm">
+                      Sign In
+                    </Button>
+                    <Button onClick={() => router.push("/signup")} size="sm">
+                      Sign Up
+                    </Button>
+                  </>
+                )}
               </div>
             )}
           </>

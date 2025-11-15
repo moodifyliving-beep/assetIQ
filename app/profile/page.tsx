@@ -5,11 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useSession } from "@/lib/auth-client"
-import { useAccount, useDisconnect } from "wagmi"
+import { useSession, authClient } from "@/lib/auth-client"
+import { useAccount, useDisconnect, useSignMessage } from "wagmi"
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
-import { Loader2, User, Mail, Wallet, Fingerprint, Save } from "lucide-react"
+import { Loader2, User, Mail, Wallet, Fingerprint, Save, Link as LinkIcon, Unlink } from "lucide-react"
 import { PasskeySignIn } from "@/components/auth/passkey-signin"
 import { WalletSignIn } from "@/components/auth/wallet-signin"
 
@@ -17,9 +17,11 @@ export default function ProfilePage() {
   const { data: session, isPending: sessionLoading } = useSession()
   const { address, isConnected } = useAccount()
   const { disconnect } = useDisconnect()
+  const { signMessageAsync } = useSignMessage()
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [loading, setLoading] = useState(false)
+  const [linkingWallet, setLinkingWallet] = useState(false)
 
   useEffect(() => {
     if (session?.user) {
@@ -58,21 +60,65 @@ export default function ProfilePage() {
       return
     }
 
+    setLinkingWallet(true)
     try {
+      // Get SIWE message from server
+      const siweResponse = await fetch(`/api/auth/siwe?address=${encodeURIComponent(address)}`)
+      if (!siweResponse.ok) {
+        throw new Error('Failed to get SIWE message')
+      }
+      
+      const { message } = await siweResponse.json()
+      
+      // Sign the message with wallet
+      const signature = await signMessageAsync({ message })
+      
+      // Link wallet with SIWE verification
       const response = await fetch("/api/user/link-wallet", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ walletAddress: address }),
+        body: JSON.stringify({ 
+          walletAddress: address,
+          message,
+          signature
+        }),
       })
 
       if (!response.ok) {
-        throw new Error("Failed to link wallet")
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to link wallet")
       }
 
       toast.success("Wallet linked successfully!")
+      // Refresh session to get updated user data
+      await authClient.getSession()
       window.location.reload()
     } catch (error: any) {
       toast.error(error.message || "Failed to link wallet")
+    } finally {
+      setLinkingWallet(false)
+    }
+  }
+
+  const handleUnlinkWallet = async () => {
+    setLinkingWallet(true)
+    try {
+      const response = await fetch("/api/user/link-wallet", {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to unlink wallet")
+      }
+
+      toast.success("Wallet unlinked successfully!")
+      // Refresh session to get updated user data
+      await authClient.getSession()
+      window.location.reload()
+    } catch (error: any) {
+      toast.error(error.message || "Failed to unlink wallet")
+    } finally {
+      setLinkingWallet(false)
     }
   }
 
@@ -174,16 +220,59 @@ export default function ProfilePage() {
                 <Wallet className="h-5 w-5 text-primary" />
                 <div>
                   <p className="font-medium">Wallet</p>
-                  <p className="text-sm text-muted-foreground">
-                    {session.user.walletAddress || "Not connected"}
+                  <p className="text-sm text-muted-foreground font-mono">
+                    {session.user.walletAddress 
+                      ? `${session.user.walletAddress.slice(0, 6)}...${session.user.walletAddress.slice(-4)}`
+                      : isConnected && address
+                      ? `${address.slice(0, 6)}...${address.slice(-4)} (Connected but not linked)`
+                      : "Not connected"}
                   </p>
                 </div>
               </div>
-              {!session.user.walletAddress && isConnected && (
-                <Button onClick={handleLinkWallet} size="sm">
-                  Link Wallet
-                </Button>
-              )}
+              <div className="flex items-center gap-2">
+                {session.user.walletAddress ? (
+                  <Button 
+                    onClick={handleUnlinkWallet} 
+                    size="sm" 
+                    variant="destructive"
+                    disabled={linkingWallet}
+                  >
+                    {linkingWallet ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Unlinking...
+                      </>
+                    ) : (
+                      <>
+                        <Unlink className="mr-2 h-4 w-4" />
+                        Unlink
+                      </>
+                    )}
+                  </Button>
+                ) : isConnected && address ? (
+                  <Button 
+                    onClick={handleLinkWallet} 
+                    size="sm"
+                    disabled={linkingWallet}
+                  >
+                    {linkingWallet ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Linking...
+                      </>
+                    ) : (
+                      <>
+                        <LinkIcon className="mr-2 h-4 w-4" />
+                        Link Wallet
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="outline" disabled>
+                    Connect Wallet First
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* Passkey */}

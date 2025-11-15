@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -9,17 +9,34 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
-import { Loader2, Mail, Lock, Wallet, Fingerprint, Sparkles } from "lucide-react"
-import { signIn } from "@/lib/auth-client"
+import { Loader2, Mail, Lock, Wallet, Fingerprint, Sparkles, Settings } from "lucide-react"
+import { signIn, useSession } from "@/lib/auth-client"
+import { useAccount } from "wagmi"
 import { WalletSignIn } from "@/components/auth/wallet-signin"
 import { MagicLinkSignIn } from "@/components/auth/magic-link-signin"
 import { PasskeySignIn } from "@/components/auth/passkey-signin"
 
 export default function LoginPage() {
   const router = useRouter()
+  const { data: session } = useSession()
+  const { address, isConnected } = useAccount()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
+
+  // If user is already logged in, redirect to home
+  useEffect(() => {
+    if (session?.user) {
+      router.push("/")
+    }
+  }, [session, router])
+
+  // If wallet is connected but user is not logged in, suggest completing profile
+  useEffect(() => {
+    if (isConnected && address && !session?.user) {
+      // Show a message that they can complete their profile
+    }
+  }, [isConnected, address, session])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -43,6 +60,42 @@ export default function LoginPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // If wallet is connected but not logged in, show profile completion option
+  if (isConnected && address && !session?.user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl font-bold text-center">Complete Your Profile</CardTitle>
+            <CardDescription className="text-center">
+              Your wallet is connected. Complete your profile to continue.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="p-4 bg-secondary/50 rounded-lg border">
+              <p className="text-sm text-muted-foreground mb-2">Connected Wallet:</p>
+              <p className="font-mono text-sm">{address.slice(0, 6)}...{address.slice(-4)}</p>
+            </div>
+            <Button 
+              onClick={() => router.push("/profile")} 
+              className="w-full"
+              size="lg"
+            >
+              <Settings className="mr-2 h-4 w-4" />
+              Go to Profile
+            </Button>
+            <div className="text-center text-sm text-muted-foreground">
+              Or{" "}
+              <Link href="/signup" className="text-primary hover:underline">
+                create a new account
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
