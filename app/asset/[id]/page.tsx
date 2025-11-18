@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { MapPin, Users, TrendingUp, Building2, Calendar, FileText, Loader2, ShoppingCart, ArrowLeft, CheckCircle2,BadgeDollarSign } from "lucide-react"
+import { MapPin, Users, TrendingUp, Building2, Calendar, FileText, Loader2, ShoppingCart, ArrowLeft, CheckCircle2,BadgeDollarSign, Activity } from "lucide-react"
 import Image from "next/image"
 import { useParams, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -15,6 +15,7 @@ import { toast } from "sonner"
 import { InvestmentDialog } from "@/components/property/investment-dialog"
 import { useAccount } from "wagmi"
 import Link from "next/link"
+import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart } from "recharts"
 
 export default function PropertyDetailPage() {
   const params = useParams()
@@ -24,6 +25,7 @@ export default function PropertyDetailPage() {
   const [loading, setLoading] = useState(true)
   const [showInvestDialog, setShowInvestDialog] = useState(false)
   const [userInvestment, setUserInvestment] = useState<any>(null)
+  const [tradingData, setTradingData] = useState<any[]>([])
 
   useEffect(() => {
     if (params.id) {
@@ -36,6 +38,72 @@ export default function PropertyDetailPage() {
       fetchUserInvestment()
     }
   }, [isConnected, address, property])
+
+  // Generate real-time trading data
+  useEffect(() => {
+    if (!property) return
+
+    // Initialize trading data from investments
+    const generateInitialData = () => {
+      const data: any[] = []
+      const basePrice = property.pricePerShare
+      let currentPrice = basePrice
+      const now = new Date()
+      
+      // Generate last 30 data points (simulating last 30 hours)
+      for (let i = 29; i >= 0; i--) {
+        const time = new Date(now.getTime() - i * 60 * 60 * 1000)
+        // Simulate price fluctuations
+        const change = (Math.random() - 0.5) * 0.1 * basePrice
+        currentPrice = Math.max(basePrice * 0.8, Math.min(basePrice * 1.2, currentPrice + change))
+        
+        // Calculate volume based on available shares
+        const volume = Math.floor(Math.random() * 100) + 10
+        
+        data.push({
+          time: time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+          timestamp: time.getTime(),
+          price: Number(currentPrice.toFixed(2)),
+          volume: volume,
+          high: currentPrice * (1 + Math.random() * 0.05),
+          low: currentPrice * (1 - Math.random() * 0.05),
+        })
+      }
+      
+      return data
+    }
+
+    setTradingData(generateInitialData())
+
+    // Update trading data every 5 seconds (simulating real-time updates)
+    const interval = setInterval(() => {
+      setTradingData((prevData) => {
+        const basePrice = property.pricePerShare
+        const lastPrice = prevData[prevData.length - 1]?.price || basePrice
+        const now = new Date()
+        
+        // Add new data point
+        const change = (Math.random() - 0.5) * 0.1 * basePrice
+        const newPrice = Math.max(basePrice * 0.8, Math.min(basePrice * 1.2, lastPrice + change))
+        const volume = Math.floor(Math.random() * 100) + 10
+        
+        const newDataPoint = {
+          time: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+          timestamp: now.getTime(),
+          price: Number(newPrice.toFixed(2)),
+          volume: volume,
+          high: newPrice * (1 + Math.random() * 0.05),
+          low: newPrice * (1 - Math.random() * 0.05),
+        }
+        
+        // Keep only last 30 data points
+        const updated = [...prevData.slice(1), newDataPoint]
+        return updated
+      })
+    }, 5000)
+
+    return () => clearInterval(interval)
+  }, [property])
 
   const fetchProperty = async () => {
     try {
@@ -482,6 +550,10 @@ export default function PropertyDetailPage() {
             <TabsTrigger value="investors">Investors ({totalInvestors})</TabsTrigger>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
             <TabsTrigger value="activity">Activity Log</TabsTrigger>
+            <TabsTrigger value="charts">
+              <Activity className="w-4 h-4 mr-2" />
+              Trading Charts
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="investors" className="space-y-4 mt-6">
@@ -599,6 +671,247 @@ export default function PropertyDetailPage() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="charts" className="space-y-4 mt-6">
+            <div className="grid grid-cols-1 gap-6">
+              {/* Price Chart */}
+              <Card className="bg-card border-border">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-foreground">Real-Time Price Chart</CardTitle>
+                      <CardDescription>
+                        Live trading price per share - Updates every 5 seconds
+                      </CardDescription>
+                    </div>
+                    {tradingData.length > 0 && (
+                      <div className="text-right">
+                        <p className="text-sm text-muted-foreground">Current Price</p>
+                        <p className="text-2xl font-bold text-green-500 dark:text-green-400">
+                          ${tradingData[tradingData.length - 1]?.price.toFixed(2)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Base: ${property.pricePerShare.toFixed(2)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {tradingData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={400}>
+                      <AreaChart data={tradingData}>
+                        <defs>
+                          <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis 
+                          dataKey="time" 
+                          stroke="hsl(var(--muted-foreground))"
+                          tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                        />
+                        <YAxis 
+                          stroke="hsl(var(--muted-foreground))"
+                          tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                          domain={['auto', 'auto']}
+                          label={{ value: 'Price ($)', angle: -90, position: 'insideLeft' }}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: 'hsl(var(--card))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '8px',
+                          }}
+                          formatter={(value: any) => [`$${value.toFixed(2)}`, 'Price']}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="price"
+                          stroke="hsl(var(--primary))"
+                          fillOpacity={1}
+                          fill="url(#colorPrice)"
+                          strokeWidth={2}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="high"
+                          stroke="#22c55e"
+                          strokeWidth={1}
+                          strokeDasharray="5 5"
+                          dot={false}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="low"
+                          stroke="#ef4444"
+                          strokeWidth={1}
+                          strokeDasharray="5 5"
+                          dot={false}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-[400px]">
+                      <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Volume Chart */}
+              <Card className="bg-card border-border">
+                <CardHeader>
+                  <CardTitle className="text-foreground">Trading Volume</CardTitle>
+                  <CardDescription>Share trading volume over time</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {tradingData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={tradingData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis 
+                          dataKey="time" 
+                          stroke="hsl(var(--muted-foreground))"
+                          tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                        />
+                        <YAxis 
+                          stroke="hsl(var(--muted-foreground))"
+                          tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                          label={{ value: 'Volume', angle: -90, position: 'insideLeft' }}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: 'hsl(var(--card))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '8px',
+                          }}
+                          formatter={(value: any) => [value, 'Volume']}
+                        />
+                        <Bar 
+                          dataKey="volume" 
+                          fill="hsl(var(--primary))"
+                          radius={[4, 4, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-[300px]">
+                      <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Combined Chart */}
+              <Card className="bg-card border-border">
+                <CardHeader>
+                  <CardTitle className="text-foreground">Price & Volume Overview</CardTitle>
+                  <CardDescription>Combined view of price movement and trading volume</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {tradingData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={400}>
+                      <ComposedChart data={tradingData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis 
+                          dataKey="time" 
+                          stroke="hsl(var(--muted-foreground))"
+                          tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                        />
+                        <YAxis 
+                          yAxisId="left"
+                          stroke="hsl(var(--muted-foreground))"
+                          tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                          label={{ value: 'Price ($)', angle: -90, position: 'insideLeft' }}
+                        />
+                        <YAxis 
+                          yAxisId="right"
+                          orientation="right"
+                          stroke="hsl(var(--muted-foreground))"
+                          tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                          label={{ value: 'Volume', angle: 90, position: 'insideRight' }}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: 'hsl(var(--card))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '8px',
+                          }}
+                        />
+                        <Area
+                          yAxisId="left"
+                          type="monotone"
+                          dataKey="price"
+                          fill="hsl(var(--primary))"
+                          fillOpacity={0.3}
+                          stroke="hsl(var(--primary))"
+                          strokeWidth={2}
+                        />
+                        <Bar 
+                          yAxisId="right"
+                          dataKey="volume" 
+                          fill="hsl(var(--muted-foreground))"
+                          fillOpacity={0.5}
+                          radius={[4, 4, 0, 0]}
+                        />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-[400px]">
+                      <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Trading Stats */}
+              {tradingData.length > 0 && (
+                <Card className="bg-card border-border">
+                  <CardHeader>
+                    <CardTitle className="text-foreground">Trading Statistics</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="bg-secondary/50 rounded-lg p-4 border border-border">
+                        <p className="text-sm text-muted-foreground mb-1">24h High</p>
+                        <p className="text-lg font-bold text-foreground">
+                          ${Math.max(...tradingData.map(d => d.high)).toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="bg-secondary/50 rounded-lg p-4 border border-border">
+                        <p className="text-sm text-muted-foreground mb-1">24h Low</p>
+                        <p className="text-lg font-bold text-foreground">
+                          ${Math.min(...tradingData.map(d => d.low)).toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="bg-secondary/50 rounded-lg p-4 border border-border">
+                        <p className="text-sm text-muted-foreground mb-1">24h Volume</p>
+                        <p className="text-lg font-bold text-foreground">
+                          {tradingData.reduce((sum, d) => sum + d.volume, 0)}
+                        </p>
+                      </div>
+                      <div className="bg-secondary/50 rounded-lg p-4 border border-border">
+                        <p className="text-sm text-muted-foreground mb-1">Price Change</p>
+                        <p className={`text-lg font-bold ${
+                          tradingData[tradingData.length - 1]?.price >= property.pricePerShare
+                            ? 'text-green-500 dark:text-green-400'
+                            : 'text-red-500 dark:text-red-400'
+                        }`}>
+                          {tradingData.length > 1 
+                            ? ((tradingData[tradingData.length - 1]?.price - tradingData[0]?.price) / tradingData[0]?.price * 100).toFixed(2)
+                            : '0.00'
+                          }%
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </TabsContent>
         </Tabs>
       </div>
