@@ -4,6 +4,7 @@ import { Exo } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 import { Web3ModalProvider } from "@/context/Web3Modal"
+import { LanguageProvider } from "@/context/language-context"
 import { Toaster } from 'sonner'
 
 const exo = Exo({ 
@@ -27,8 +28,10 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`${exo.variable} font-sans antialiased bg-background text-foreground`}>
         <Web3ModalProvider>
-        {children}
-        <Toaster position="top-right" richColors />
+          <LanguageProvider>
+            {children}
+            <Toaster position="top-right" richColors />
+          </LanguageProvider>
         </Web3ModalProvider>
         <Analytics />
       </body>

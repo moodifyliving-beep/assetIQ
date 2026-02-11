@@ -8,7 +8,7 @@ import { LayoutDashboard, ShoppingCart, Home, Plus, TrendingUp, Coins, Menu, X, 
 import { cn } from "@/lib/utils"
 
 const menuItems = [
-  { label: "Dashboard", href: "/", icon: LayoutDashboard },
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Marketplace", href: "/marketplace", icon: ShoppingCart },
   { label: "My Properties", href: "/my-properties", icon: Home },
   { label: "Add Property", href: "/add-property", icon: Plus },

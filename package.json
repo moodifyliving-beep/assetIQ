@@ -61,6 +61,7 @@
     "embla-carousel-react": "8.5.1",
     "ethers": "^6.15.0",
     "expo": "latest",
+    "framer-motion": "^11.11.0",
     "expo-asset": "latest",
     "expo-file-system": "latest",
     "expo-gl": "latest",
