@@ -17,6 +17,15 @@ import { useAccount } from "wagmi"
 import Link from "next/link"
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart } from "recharts"
 
+interface TradingDataPoint {
+  time: string
+  timestamp: number
+  price: number
+  volume: number
+  high: number
+  low: number
+}
+
 export default function PropertyDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -25,7 +34,7 @@ export default function PropertyDetailPage() {
   const [loading, setLoading] = useState(true)
   const [showInvestDialog, setShowInvestDialog] = useState(false)
   const [userInvestment, setUserInvestment] = useState<any>(null)
-  const [tradingData, setTradingData] = useState<any[]>([])
+  const [tradingData, setTradingData] = useState<TradingDataPoint[]>([])
 
   useEffect(() => {
     if (params.id) {
@@ -44,8 +53,8 @@ export default function PropertyDetailPage() {
     if (!property) return
 
     // Initialize trading data from investments
-    const generateInitialData = () => {
-      const data: any[] = []
+    const generateInitialData = (): TradingDataPoint[] => {
+      const data: TradingDataPoint[] = []
       const basePrice = property.pricePerShare
       let currentPrice = basePrice
       const now = new Date()
@@ -77,7 +86,7 @@ export default function PropertyDetailPage() {
 
     // Update trading data every 5 seconds (simulating real-time updates)
     const interval = setInterval(() => {
-      setTradingData((prevData) => {
+      setTradingData((prevData: TradingDataPoint[]) => {
         const basePrice = property.pricePerShare
         const lastPrice = prevData[prevData.length - 1]?.price || basePrice
         const now = new Date()
@@ -879,19 +888,19 @@ export default function PropertyDetailPage() {
                       <div className="bg-secondary/50 rounded-lg p-4 border border-border">
                         <p className="text-sm text-muted-foreground mb-1">24h High</p>
                         <p className="text-lg font-bold text-foreground">
-                          ${Math.max(...tradingData.map(d => d.high)).toFixed(2)}
+                          ${Math.max(...tradingData.map((d: TradingDataPoint) => d.high)).toFixed(2)}
                         </p>
                       </div>
                       <div className="bg-secondary/50 rounded-lg p-4 border border-border">
                         <p className="text-sm text-muted-foreground mb-1">24h Low</p>
                         <p className="text-lg font-bold text-foreground">
-                          ${Math.min(...tradingData.map(d => d.low)).toFixed(2)}
+                          ${Math.min(...tradingData.map((d: TradingDataPoint) => d.low)).toFixed(2)}
                         </p>
                       </div>
                       <div className="bg-secondary/50 rounded-lg p-4 border border-border">
                         <p className="text-sm text-muted-foreground mb-1">24h Volume</p>
                         <p className="text-lg font-bold text-foreground">
-                          {tradingData.reduce((sum, d) => sum + d.volume, 0)}
+                          {tradingData.reduce((sum: number, d: TradingDataPoint) => sum + d.volume, 0)}
                         </p>
                       </div>
                       <div className="bg-secondary/50 rounded-lg p-4 border border-border">
