@@ -13,18 +13,16 @@ const nextConfig = {
     unoptimized: true,
   },
   serverExternalPackages: ['pino', 'thread-stream', 'pino-pretty'],
-  // Stub test-only deps so thread-stream test files bundled by Turbopack can resolve them
-  turbopack: {
-    resolveAlias: {
-      'why-is-node-running': stubPath,
-      tape: stubPath,
-    },
-  },
-  webpack: (config) => {
+  // Use webpack for build so pino/thread-stream test dirs are not bundled (Turbopack pulls them in)
+  webpack: (config, { isServer }) => {
     config.resolve.alias = {
       ...config.resolve.alias,
       'why-is-node-running': stubPath,
       tape: stubPath,
+      tap: stubPath,
+      desm: stubPath,
+      fastbench: stubPath,
+      'pino-elasticsearch': stubPath,
     }
     return config
   },
