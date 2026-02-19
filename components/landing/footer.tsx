@@ -48,16 +48,16 @@ export default function Footer() {
             <div className="flex flex-col items-start justify-start md:max-w-[300px]">
               <div className="flex items-center gap-2">
                 <Image src="/icons/icon.svg" alt="Assets IQ" width={32} height={32} />
-                <span className="text-lg lg:text-xl font-medium">Assets IQ</span>
+                <span className="text-lg lg:text-xl font-medium">Moodify</span>
               </div>
               <p className="text-muted-foreground mt-4 text-sm">
-                123 Pine Avenue, Suite 500
+              
                 <br />
-                New York, NY 10001
+                East Legon, Accra, Ghana
               </p>
               <div className="mt-4 text-sm text-muted-foreground">
-                <p>support@assetsiq.com</p>
-                <p>+1 (123) 456-7890</p>
+                <p>info@moodify.site</p>
+                <p>+233 532-818-725</p>
               </div>
               <div className="flex items-center gap-4 mt-6">
                 {SOCIAL_LINKS.map((social, index) => (
@@ -119,7 +119,7 @@ export default function Footer() {
         </div>
         <AnimationContainer animation="fadeUp" delay={1}>
           <div className="mt-16 border-t border-border/40 py-8 flex flex-col md:flex-row items-center justify-center">
-            <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} Assets IQ. All rights reserved.</p>
+            <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} Moodify. All rights reserved.</p>
           </div>
         </AnimationContainer>
       </Wrapper>

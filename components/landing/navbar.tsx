@@ -11,7 +11,6 @@ import { RefObject, useRef, useState } from "react";
 import AnimationContainer from "./global/animation-container";
 import Icons from "./global/icons";
 import Wrapper from "./global/wrapper";
-import LanguageSwitcherSimple from "./language-switcher-simple";
 import { useLanguage } from "@/context/language-context";
 
 export default function LandingNavbar() {
@@ -70,7 +69,6 @@ export default function LandingNavbar() {
 
           <AnimationContainer animation="fadeLeft" delay={0.1}>
             <div className="flex items-center gap-x-4">
-              <LanguageSwitcherSimple />
               <Link href="/dashboard">
                 <Button>{t("common.dashboard")}</Button>
               </Link>
@@ -104,7 +102,6 @@ export default function LandingNavbar() {
             </AnimationContainer>
             <AnimationContainer animation="fadeLeft" delay={0.1}>
               <div className="flex items-center justify-center gap-x-4">
-                <LanguageSwitcherSimple />
                 <Link href="/signup"><Button size="sm">{t("common.getStarted")}</Button></Link>
                 {open ? <XIcon className="text-black dark:text-white" onClick={() => setOpen(!open)} /> : <MenuIcon className="text-black dark:text-white" onClick={() => setOpen(!open)} />}
               </div>
