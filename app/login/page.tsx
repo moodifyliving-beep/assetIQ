@@ -104,7 +104,7 @@ export default function LoginPage() {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">Welcome Back</CardTitle>
           <CardDescription className="text-center">
-            Sign in to your Assets IQ account
+            Sign in to your Moodify account
           </CardDescription>
         </CardHeader>
         <CardContent>

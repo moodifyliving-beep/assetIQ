@@ -22,7 +22,7 @@ export const auth = betterAuth({
   },
   passkey: {
     enabled: true,
-    rpName: "Assets IQ",
+    rpName: "Moodify",
     rpID: process.env.NEXT_PUBLIC_APP_URL?.replace(/https?:\/\//, "").split(":")[0] || "localhost",
   },
   session: {

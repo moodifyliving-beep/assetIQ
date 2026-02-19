@@ -13,6 +13,15 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
 import { useAccount } from "wagmi"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export default function Dashboard() {
   const { address, isConnected } = useAccount()
@@ -27,6 +36,7 @@ export default function Dashboard() {
   const [portfolioGrowthData, setPortfolioGrowthData] = useState<{ month: string; value: number }[]>([])
   const [royaltyIncomeData, setRoyaltyIncomeData] = useState<{ month: string; amount: number }[]>([])
   const [loadingStats, setLoadingStats] = useState(true)
+  const [showBetaNotice, setShowBetaNotice] = useState(true)
 
   const fetchApprovedProperties = async () => {
     try {
@@ -112,6 +122,22 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
+      <AlertDialog open={showBetaNotice} onOpenChange={setShowBetaNotice}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Assets IQ is currently in beta</AlertDialogTitle>
+            <AlertDialogDescription>
+              Trading and real investments are not yet enabled. All properties, portfolio data, and investment actions
+              in this dashboard are for demonstration purposes only while we onboard partners.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowBetaNotice(false)}>
+              I understand
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <div className="space-y-8">
         <div className="flex items-start justify-between">
           <div>

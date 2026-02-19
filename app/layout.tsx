@@ -14,7 +14,7 @@ const exo = Exo({
 })
 
 export const metadata: Metadata = {
-  title: "Assets IQ - Tokenized Property Investment",
+  title: "Moodify - Tokenized Property Investment",
   description: "Invest in tokenized real estate properties with Web3",
   generator: "v0.app",
 }

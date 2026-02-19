@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     const message = new SiweMessage({
       domain,
       address,
-      statement: 'Sign in to Assets IQ',
+      statement: 'Sign in to Moodify',
       uri: origin,
       version: '1',
       chainId: 1, // Mainnet - you can make this dynamic

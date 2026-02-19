@@ -74,7 +74,7 @@ export function Sidebar() {
         )}
       >
         <div className="p-6 border-b border-sidebar-border">
-          <h1 className="text-2xl font-bold text-sidebar-foreground">AssetsIQ</h1>
+          <h1 className="text-2xl font-bold text-sidebar-foreground">Moodify</h1>
           <p className="text-xs text-sidebar-accent-foreground opacity-60">Tokenized property Investing</p>
         </div>
 
