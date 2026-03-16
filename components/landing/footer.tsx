@@ -1,36 +1,32 @@
-import { Facebook, Instagram, Linkedin, Twitter, Youtube } from "lucide-react";
+import { Instagram } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import AnimationContainer from "./global/animation-container";
 import Wrapper from "./global/wrapper";
 
 const PRODUCT_LINKS = [
-  { label: "Property Search", href: "/marketplace" },
-  { label: "Management Tools", href: "/dashboard" },
+  { label: "Property Search", href: "/invest/marketplace" },
+  { label: "Management Tools", href: "/property/dashboard" },
   { label: "Virtual Tours", href: "#" },
-  { label: "Market Analytics", href: "/dashboard" },
+  { label: "Invest Dashboard", href: "/invest/dashboard" },
 ];
 
 const RESOURCES_LINKS = [
-  { label: "Knowledge Base", href: "#" },
-  { label: "Market Reports", href: "#" },
-  { label: "Property Guides", href: "#" },
-  { label: "Success Stories", href: "#" },
+  { label: "Pitch Deck", href: "/pitch-deck" },
+  { label: "Tokenomics", href: "/tokenomics" },
+  { label: "Whitepaper", href: "/whitepaper" },
+  { label: "Knowledge Base", href: "/knowledge-base" },
 ];
 
 const COMPANY_LINKS = [
-  { label: "About Us", href: "#" },
-  { label: "Contact", href: "#contact" },
-  { label: "Privacy Policy", href: "#" },
-  { label: "Terms of Service", href: "#" },
+  { label: "About Us", href: "/about" },
+  { label: "Contact", href: "/contact" },
+  { label: "Privacy Policy", href: "/privacy" },
+  { label: "Terms of Service", href: "/terms" },
 ];
 
 const SOCIAL_LINKS = [
-  { icon: Facebook, href: "#" },
-  { icon: Twitter, href: "#" },
-  { icon: Instagram, href: "#" },
-  { icon: Linkedin, href: "#" },
-  { icon: Youtube, href: "#" },
+  { icon: Instagram, href: "https://www.instagram.com/moodifyliving/" },
 ];
 
 export default function Footer() {
@@ -62,7 +58,7 @@ export default function Footer() {
               <div className="flex items-center gap-4 mt-6">
                 {SOCIAL_LINKS.map((social, index) => (
                   <AnimationContainer key={`social-${index}`} animation="fadeUp" delay={0.6 + index * 0.1}>
-                    <Link href={social.href} className="text-muted-foreground hover:text-primary transition-colors">
+                    <Link href={social.href} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors" aria-label="Instagram">
                       <social.icon className="size-5" />
                     </Link>
                   </AnimationContainer>

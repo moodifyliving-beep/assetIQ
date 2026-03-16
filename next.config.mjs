@@ -6,6 +6,15 @@ const stubPath = path.resolve(__dirname, 'lib/stub-module.cjs')
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async redirects() {
+    return [
+      { source: "/marketplace", destination: "/invest/marketplace", permanent: false },
+      { source: "/my-investments", destination: "/invest/my-investments", permanent: false },
+      { source: "/royalties", destination: "/invest/royalties", permanent: false },
+      { source: "/my-properties", destination: "/property/my-properties", permanent: false },
+      { source: "/add-property", destination: "/property/add-property", permanent: false },
+    ]
+  },
   typescript: {
     ignoreBuildErrors: true,
   },

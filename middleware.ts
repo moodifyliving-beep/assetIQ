@@ -11,6 +11,7 @@ export function middleware(request: NextRequest) {
     '/auth/verify',
     '/', // Home page
     '/marketplace',
+    '/invest/marketplace',
     '/asset',
   ]
   

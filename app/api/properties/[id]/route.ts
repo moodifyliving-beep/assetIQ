@@ -1,5 +1,6 @@
 // app/api/properties/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
 export async function GET(
@@ -43,11 +44,11 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await auth.api.getSession({ headers: req.headers })
     const { id } = await params
     const body = await req.json()
     const { walletAddress, ...updateData } = body
     
-    // First, get the property to verify ownership
     const property = await prisma.property.findUnique({
       where: { id },
       include: {
@@ -65,8 +66,10 @@ export async function PUT(
       )
     }
 
-    // Verify ownership
-    if (!walletAddress || property.owner.walletAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+    // Verify ownership: session (email auth) OR wallet
+    const isOwnerBySession = session?.user?.id && property.ownerId === session.user.id
+    const isOwnerByWallet = walletAddress && property.owner?.walletAddress?.toLowerCase() === walletAddress.toLowerCase()
+    if (!isOwnerBySession && !isOwnerByWallet) {
       return NextResponse.json(
         { error: 'Unauthorized: You do not own this property' },
         { status: 403 }

@@ -4,11 +4,12 @@
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { useAccount } from "wagmi"
 import { useEffect, useState } from "react"
-import { Loader2, CheckCircle, XCircle, Eye, FileText } from "lucide-react"
+import { Loader2, CheckCircle, XCircle, Eye, FileText, LogIn } from "lucide-react"
 import { toast } from "sonner"
 import Image from "next/image"
+import Link from "next/link"
+import { useSession } from "@/lib/auth-client"
 import {
   Dialog,
   DialogContent,
@@ -21,7 +22,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function AdminProperties() {
-  const { address } = useAccount()
+  const { data: session, isPending: sessionLoading } = useSession()
   const [properties, setProperties] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedProperty, setSelectedProperty] = useState<any>(null)
@@ -37,18 +38,16 @@ export default function AdminProperties() {
   })
 
   useEffect(() => {
-    fetchProperties()
-    fetchStatusCounts()
-  }, [filter, address])
+    if (!sessionLoading) {
+      fetchProperties()
+      fetchStatusCounts()
+    }
+  }, [filter, sessionLoading])
 
   const fetchProperties = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/admin/properties?status=${filter}`, {
-        headers: {
-          'x-wallet-address': address || ''
-        }
-      })
+      const response = await fetch(`/api/admin/properties?status=${filter}`)
 
       if (!response.ok) throw new Error('Failed to fetch properties')
 
@@ -77,11 +76,7 @@ export default function AdminProperties() {
       
       await Promise.all(
         statuses.map(async (status) => {
-          const response = await fetch(`/api/admin/properties?status=${status}&limit=1`, {
-            headers: {
-              'x-wallet-address': address || ''
-            }
-          })
+          const response = await fetch(`/api/admin/properties?status=${status}&limit=1`)
           if (response.ok) {
             const data = await response.json()
             counts[status] = data.pagination?.total || (Array.isArray(data) ? data.length : (data.properties?.length || 0))
@@ -101,10 +96,7 @@ export default function AdminProperties() {
     setProcessing(true)
     try {
       const response = await fetch(`/api/admin/properties/${propertyId}/approve`, {
-        method: 'POST',
-        headers: {
-          'x-wallet-address': address || ''
-        }
+        method: 'POST'
       })
 
       if (!response.ok) throw new Error('Failed to approve property')
@@ -131,8 +123,7 @@ export default function AdminProperties() {
       const response = await fetch(`/api/admin/properties/${selectedProperty.id}/reject`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'x-wallet-address': address || ''
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ reason: rejectionReason })
       })
@@ -157,10 +148,7 @@ export default function AdminProperties() {
     setProcessing(true)
     try {
       const response = await fetch(`/api/admin/properties/${propertyId}/review`, {
-        method: 'POST',
-        headers: {
-          'x-wallet-address': address || ''
-        }
+        method: 'POST'
       })
 
       if (!response.ok) throw new Error('Failed to update status')
@@ -179,10 +167,7 @@ export default function AdminProperties() {
   const handleVerifyDocument = async (documentId: string) => {
     try {
       const response = await fetch(`/api/admin/documents/${documentId}/verify`, {
-        method: 'POST',
-        headers: {
-          'x-wallet-address': address || ''
-        }
+        method: 'POST'
       })
 
       if (!response.ok) throw new Error('Failed to verify document')
@@ -195,11 +180,26 @@ export default function AdminProperties() {
     }
   }
 
-  if (loading) {
+  if (loading || sessionLoading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-8 h-8 animate-spin" />
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  if (!session?.user) {
+    return (
+      <DashboardLayout>
+        <div className="text-center py-12">
+          <LogIn className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+          <h2 className="text-2xl font-bold mb-4">Sign in to view admin properties</h2>
+          <p className="text-muted-foreground mb-6">Sign in with an admin account to review properties.</p>
+          <Link href="/login">
+            <Button>Sign in</Button>
+          </Link>
         </div>
       </DashboardLayout>
     )
@@ -389,9 +389,36 @@ export default function AdminProperties() {
                     )}
 
                     {property.status === 'APPROVED' && (
-                      <div className="p-4 bg-green-50 rounded-lg text-center">
-                        <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
-                        <p className="text-sm font-medium text-green-800">Approved</p>
+                      <div className="space-y-3">
+                        <div className="p-4 bg-green-50 rounded-lg text-center">
+                          <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                          <p className="text-sm font-medium text-green-800">Approved</p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          disabled={processing}
+                          onClick={async () => {
+                            setProcessing(true)
+                            try {
+                              const response = await fetch(
+                                `/api/admin/properties/${property.id}/archive`,
+                                { method: 'POST' }
+                              )
+                              if (!response.ok) throw new Error('Failed to archive property')
+                              toast.success('Property archived')
+                              fetchProperties()
+                              fetchStatusCounts()
+                            } catch (error) {
+                              console.error('Error:', error)
+                              toast.error('Failed to archive property')
+                            } finally {
+                              setProcessing(false)
+                            }
+                          }}
+                        >
+                          Archive property
+                        </Button>
                       </div>
                     )}
 

@@ -3,36 +3,32 @@
 
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { useAccount } from "wagmi"
 import { useEffect, useState } from "react"
-import { Loader2, Users, Building2, CheckCircle, XCircle, Clock, DollarSign } from "lucide-react"
+import { Loader2, Users, Building2, CheckCircle, XCircle, Clock, DollarSign, LogIn } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { useSession } from "@/lib/auth-client"
 
 export default function AdminDashboard() {
-  const { address, isConnected } = useAccount()
+  const { data: session, isPending: sessionLoading } = useSession()
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
-    if (isConnected && address) {
+    if (!sessionLoading) {
       checkAdminAndFetchStats()
     }
-  }, [isConnected, address])
+  }, [sessionLoading])
 
   const checkAdminAndFetchStats = async () => {
     try {
-      const response = await fetch('/api/admin/stats', {
-        headers: {
-          'x-wallet-address': address || ''
-        }
-      })
+      const response = await fetch('/api/admin/stats')
 
-      if (response.status === 403) {
+      if (response.status === 401) {
         setIsAdmin(false)
-        toast.error('Unauthorized: Admin access required')
+        setLoading(false)
         return
       }
 
@@ -51,22 +47,26 @@ export default function AdminDashboard() {
     }
   }
 
-  if (!isConnected) {
+  if (sessionLoading || loading) {
     return (
       <DashboardLayout>
-        <div className="text-center py-12">
-          <h2 className="text-2xl font-bold mb-4">Connect Your Wallet</h2>
-          <p className="text-muted-foreground">Please connect your wallet to access the admin dashboard</p>
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin" />
         </div>
       </DashboardLayout>
     )
   }
 
-  if (loading) {
+  if (!session?.user) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin" />
+        <div className="text-center py-12">
+          <LogIn className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+          <h2 className="text-2xl font-bold mb-4">Sign in to access admin</h2>
+          <p className="text-muted-foreground mb-6">Sign in with an admin account to manage the platform.</p>
+          <Link href="/login">
+            <Button>Sign in</Button>
+          </Link>
         </div>
       </DashboardLayout>
     )

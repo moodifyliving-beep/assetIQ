@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { type ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 interface AnimationContainerProps {
   children: ReactNode;
@@ -29,7 +30,7 @@ export default function AnimationContainer({
 }: AnimationContainerProps) {
   return (
     <motion.div
-      className={className}
+      className={cn("animation-print-reset", className)}
       initial={getAnimationVariants(animation)}
       whileInView={{ opacity: 1, y: 0, x: 0, scale: 1 }}
       viewport={{ once: true }}

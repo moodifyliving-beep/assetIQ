@@ -61,7 +61,7 @@ export default function LandingNavbar() {
               </AnimationContainer>
               <AnimationContainer key="nav-contact" animation="fadeDown" delay={0.1 * 2}>
                 <div className="relative">
-                  <Link href="#contact" className="hover:text-foreground transition-all duration-500 hover:bg-accent rounded-md px-4 py-2">{t("nav.contact")}</Link>
+                  <Link href="/contact" className="hover:text-foreground transition-all duration-500 hover:bg-accent rounded-md px-4 py-2">{t("nav.contact")}</Link>
                 </div>
               </AnimationContainer>
             </AnimatePresence>
@@ -69,7 +69,7 @@ export default function LandingNavbar() {
 
           <AnimationContainer animation="fadeLeft" delay={0.1}>
             <div className="flex items-center gap-x-4">
-              <Link href="/dashboard">
+              <Link href="/invest/dashboard">
                 <Button>{t("common.dashboard")}</Button>
               </Link>
               <Link href="/signup">
@@ -126,10 +126,10 @@ export default function LandingNavbar() {
                 <Link href="#pricing" onClick={() => setOpen(false)} className="relative text-neutral-300 hover:bg-neutral-800 w-full px-4 py-2 rounded-lg"><motion.span>{t("nav.pricing")}</motion.span></Link>
               </AnimationContainer>
               <AnimationContainer key="mobile-contact" animation="fadeRight" delay={0.1 * 3} className="w-full">
-                <Link href="#contact" onClick={() => setOpen(false)} className="relative text-neutral-300 hover:bg-neutral-800 w-full px-4 py-2 rounded-lg"><motion.span>{t("nav.contact")}</motion.span></Link>
+                <Link href="/contact" onClick={() => setOpen(false)} className="relative text-neutral-300 hover:bg-neutral-800 w-full px-4 py-2 rounded-lg"><motion.span>{t("nav.contact")}</motion.span></Link>
               </AnimationContainer>
               <AnimationContainer key="mobile-actions" animation="fadeUp" delay={0.5} className="w-full">
-                <Link href="/dashboard" onClick={() => setOpen(false)} className="w-full"><Button variant="default" className="block md:hidden w-full">{t("common.dashboard")}</Button></Link>
+                <Link href="/invest/dashboard" onClick={() => setOpen(false)} className="w-full"><Button variant="default" className="block md:hidden w-full">{t("common.dashboard")}</Button></Link>
                 <Link href="/signup" onClick={() => setOpen(false)} className="w-full"><Button variant="default" className="block md:hidden w-full">{t("common.getStarted")}</Button></Link>
               </AnimationContainer>
             </motion.div>

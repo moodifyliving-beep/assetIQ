@@ -3,17 +3,46 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
-import { useAccount } from "wagmi"
-import { LayoutDashboard, ShoppingCart, Home, Plus, TrendingUp, Coins, Menu, X, MessageCircle, Shield, Users, FileText } from "lucide-react"
+import {
+  LayoutDashboard,
+  ShoppingCart,
+  Home,
+  Plus,
+  TrendingUp,
+  Coins,
+  Menu,
+  X,
+  MessageCircle,
+  Shield,
+  Users,
+  FileText,
+  Wallet,
+  Wrench,
+  FileStack,
+  BarChart3,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useSession } from "@/lib/auth-client"
+import { DashboardModeSwitcher } from "./dashboard-mode-switcher"
 
-const menuItems = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Marketplace", href: "/marketplace", icon: ShoppingCart },
-  { label: "My Properties", href: "/my-properties", icon: Home },
-  { label: "Add Property", href: "/add-property", icon: Plus },
-  { label: "My Investments", href: "/my-investments", icon: TrendingUp },
-  { label: "Royalties", href: "/royalties", icon: Coins },
+const propertyMenuItems = [
+  { label: "Dashboard", href: "/property/dashboard", icon: LayoutDashboard },
+  { label: "My Properties", href: "/property/my-properties", icon: Home },
+  { label: "Add Property", href: "/property/add-property", icon: Plus },
+  { label: "Rent & Tenants", href: "/property/rent", icon: Wallet },
+  { label: "Maintenance", href: "/property/maintenance", icon: Wrench },
+  { label: "Documents", href: "/property/documents", icon: FileStack },
+  { label: "Reports", href: "/property/reports", icon: BarChart3 },
+]
+
+const investMenuItems = [
+  { label: "Dashboard", href: "/invest/dashboard", icon: LayoutDashboard },
+  { label: "Marketplace", href: "/invest/marketplace", icon: ShoppingCart },
+  { label: "My Investments", href: "/invest/my-investments", icon: TrendingUp },
+  { label: "Royalties", href: "/invest/royalties", icon: Coins },
+]
+
+const sharedMenuItems = [
   { label: "AI Assistant", href: "/chat", icon: MessageCircle },
 ]
 
@@ -26,25 +55,21 @@ const adminMenuItems = [
 export function Sidebar() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
-  const { address, isConnected } = useAccount()
+  const { data: session } = useSession()
   const [isAdmin, setIsAdmin] = useState(false)
 
-  useEffect(() => {
-    if (isConnected && address) {
-      checkAdminStatus()
-    } else {
-      setIsAdmin(false)
-    }
-  }, [isConnected, address])
+  const isPropertyMode =
+    pathname.startsWith("/property") ||
+    pathname.startsWith("/my-properties") ||
+    pathname.startsWith("/add-property") ||
+    pathname.startsWith("/properties/")
+
+  const menuItems = isPropertyMode ? propertyMenuItems : investMenuItems
 
   const checkAdminStatus = async () => {
     try {
-      const response = await fetch('/api/admin/check', {
-        headers: {
-          'x-wallet-address': address || ''
-        }
-      })
-      
+      const response = await fetch("/api/admin/check")
+
       if (response.ok) {
         const data = await response.json()
         setIsAdmin(data.isAdmin || false)
@@ -54,6 +79,21 @@ export function Sidebar() {
     } catch {
       setIsAdmin(false)
     }
+  }
+
+  useEffect(() => {
+    if (session?.user) {
+      checkAdminStatus()
+    } else {
+      setIsAdmin(false)
+    }
+  }, [session])
+
+  const isActive = (href: string) => {
+    if (href === "/property/dashboard" || href === "/invest/dashboard") {
+      return pathname === href
+    }
+    return pathname.startsWith(href) || pathname === href
   }
 
   return (
@@ -70,18 +110,28 @@ export function Sidebar() {
         className={cn(
           "fixed left-0 top-0 h-screen w-64 bg-sidebar border-r border-sidebar-border transition-transform duration-300 z-40",
           "md:translate-x-0",
-          isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+          isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         )}
       >
         <div className="p-6 border-b border-sidebar-border">
           <h1 className="text-2xl font-bold text-sidebar-foreground">Moodify</h1>
-          <p className="text-xs text-sidebar-accent-foreground opacity-60">Tokenized property Investing</p>
+          <p className="text-xs text-sidebar-accent-foreground opacity-60">
+            Tokenized property investing
+          </p>
         </div>
 
-        <nav className="p-4 space-y-2">
+        <nav className="p-4 space-y-1 overflow-y-auto max-h-[calc(100vh-220px)]">
+          <DashboardModeSwitcher />
+
+          <div className="px-3 mb-1">
+            <p className="text-[10px] font-semibold text-sidebar-accent-foreground uppercase tracking-wider opacity-60">
+              {isPropertyMode ? "Property Management" : "Investing"}
+            </p>
+          </div>
+
           {menuItems.map((item) => {
             const Icon = item.icon
-            const isActive = pathname === item.href
+            const active = isActive(item.href)
             return (
               <Link
                 key={item.href}
@@ -89,9 +139,9 @@ export function Sidebar() {
                 onClick={() => setIsOpen(false)}
                 className={cn(
                   "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
-                  isActive
+                  active
                     ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent",
+                    : "text-sidebar-foreground hover:bg-sidebar-accent"
                 )}
               >
                 <Icon size={20} />
@@ -100,7 +150,29 @@ export function Sidebar() {
             )
           })}
 
-          {/* Admin Section */}
+          <div className="pt-4 mt-4 border-t border-sidebar-border">
+            {sharedMenuItems.map((item) => {
+              const Icon = item.icon
+              const active = pathname === item.href
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setIsOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
+                    active
+                      ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent"
+                  )}
+                >
+                  <Icon size={20} />
+                  <span className="font-medium">{item.label}</span>
+                </Link>
+              )
+            })}
+          </div>
+
           {isAdmin && (
             <>
               <div className="pt-4 mt-4 border-t border-sidebar-border">
@@ -109,34 +181,38 @@ export function Sidebar() {
                     Admin
                   </p>
                 </div>
+                {adminMenuItems.map((item) => {
+                  const Icon = item.icon
+                  const active = pathname === item.href
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setIsOpen(false)}
+                      className={cn(
+                        "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
+                        active
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent"
+                      )}
+                    >
+                      <Icon size={20} />
+                      <span className="font-medium">{item.label}</span>
+                    </Link>
+                  )
+                })}
               </div>
-              {adminMenuItems.map((item) => {
-                const Icon = item.icon
-                const isActive = pathname === item.href
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setIsOpen(false)}
-                    className={cn(
-                      "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
-                      isActive
-                        ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent",
-                    )}
-                  >
-                    <Icon size={20} />
-                    <span className="font-medium">{item.label}</span>
-                  </Link>
-                )
-              })}
             </>
           )}
         </nav>
       </aside>
 
-      {/* Mobile Overlay */}
-      {isOpen && <div className="fixed inset-0 bg-black/50 z-30 md:hidden" onClick={() => setIsOpen(false)} />}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
     </>
   )
 }

@@ -1,5 +1,6 @@
 // app/api/properties/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
@@ -7,6 +8,7 @@ export const runtime = 'nodejs'
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await auth.api.getSession({ headers: req.headers })
     const body = await req.json()
     const { 
       title, 
@@ -19,41 +21,48 @@ export async function POST(req: NextRequest) {
       walletAddress 
     } = body
 
-    // Validate required fields
-    if (!title || !location || !assetValue || !totalShares || !walletAddress) {
+    // Validate required fields (owner identified by session OR walletAddress)
+    if (!title || !location || !assetValue || !totalShares) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       )
     }
 
-    // Normalize wallet address to lowercase for consistency
-    const normalizedWalletAddress = walletAddress.toLowerCase()
-    
-    // Find or create user with unique email
-    let user = await prisma.user.findUnique({
-      where: { walletAddress: normalizedWalletAddress }
-    })
+    let user = null
 
-    if (!user) {
-      // Generate unique placeholder email for wallet-only users
-      const placeholderEmail = `wallet-${normalizedWalletAddress}@assetsiq.local`
-      
-      // Check if email exists (shouldn't happen, but be safe)
-      const existingUser = await prisma.user.findUnique({
-        where: { email: placeholderEmail }
+    // Prefer session (email/password auth) for property management - no wallet required
+    if (session?.user?.id) {
+      user = await prisma.user.findUnique({
+        where: { id: session.user.id }
       })
-      
-      if (existingUser) {
-        user = existingUser
-      } else {
-        user = await prisma.user.create({
+    }
+
+    // Fallback: wallet address (for wallet-connected users)
+    if (!user && walletAddress) {
+      const normalizedWalletAddress = walletAddress.toLowerCase()
+      user = await prisma.user.findUnique({
+        where: { walletAddress: normalizedWalletAddress }
+      })
+      if (!user) {
+        const placeholderEmail = `wallet-${normalizedWalletAddress}@assetsiq.local`
+        const existingUser = await prisma.user.findUnique({
+          where: { email: placeholderEmail }
+        })
+        user = existingUser || await prisma.user.create({
           data: { 
             walletAddress: normalizedWalletAddress,
-            email: placeholderEmail, // Unique email required for Better Auth
+            email: placeholderEmail,
           }
         })
       }
+    }
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Sign in or connect your wallet to add properties' },
+        { status: 401 }
+      )
     }
 
     // Calculate price per share
@@ -99,24 +108,35 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
+    const session = await auth.api.getSession({ headers: req.headers })
     const { searchParams } = new URL(req.url)
     const walletAddress = searchParams.get('walletAddress')
+    const mine = searchParams.get('mine') === 'true'
     const status = searchParams.get('status')
 
     const where: any = {}
     
-    if (walletAddress) {
-      // Normalize wallet address to lowercase for consistency
+    // "My properties" - prefer session (email auth), fallback to wallet
+    if (mine) {
+      if (session?.user?.id) {
+        where.ownerId = session.user.id
+      } else if (walletAddress) {
+        const normalizedWalletAddress = walletAddress.toLowerCase()
+        const user = await prisma.user.findUnique({
+          where: { walletAddress: normalizedWalletAddress }
+        })
+        if (user) where.ownerId = user.id
+        else return NextResponse.json([])
+      } else {
+        return NextResponse.json([])
+      }
+    } else if (walletAddress) {
       const normalizedWalletAddress = walletAddress.toLowerCase()
       const user = await prisma.user.findUnique({
         where: { walletAddress: normalizedWalletAddress }
       })
-      if (user) {
-        where.ownerId = user.id
-      } else {
-        // If user doesn't exist, return empty array (no properties for this wallet)
-        return NextResponse.json([])
-      }
+      if (user) where.ownerId = user.id
+      else return NextResponse.json([])
     }
 
     if (status) {

@@ -10,8 +10,7 @@ import { ImageUpload } from "@/components/forms/image-upload"
 import { DocumentVerification } from "@/components/forms/document-verification"
 import { useState, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useAccount } from "wagmi"
-import { useAppKit } from "@reown/appkit/react"
+import { useSession } from "@/lib/auth-client"
 import { toast } from "sonner"
 import { Loader2, ArrowLeft } from "lucide-react"
 import { useRouter, useParams } from "next/navigation"
@@ -21,8 +20,7 @@ import { Textarea } from "@/components/ui/textarea"
 export default function EditProperty() {
   const router = useRouter()
   const params = useParams()
-  const { address, isConnected } = useAccount()
-  const { open } = useAppKit()
+  const { data: session, isPending: sessionLoading } = useSession()
   
   const [loading, setLoading] = useState(true)
   const [property, setProperty] = useState<any>(null)
@@ -71,7 +69,7 @@ export default function EditProperty() {
     } catch (error) {
       console.error('Error fetching property:', error)
       toast.error('Failed to load property')
-      router.push('/my-properties')
+      router.push('/property/my-properties')
     } finally {
       setLoading(false)
     }
@@ -85,17 +83,15 @@ export default function EditProperty() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Check wallet connection
-    if (!isConnected || !address) {
-      toast.error("Please connect your wallet first")
-      open()
+    if (!session?.user) {
+      toast.error("Please sign in to edit this property")
       return
     }
 
     // Verify ownership
-    if (property && property.owner.walletAddress.toLowerCase() !== address.toLowerCase()) {
+    if (property && property.ownerId !== session.user.id) {
       toast.error("You don't have permission to edit this property")
-      router.push('/my-properties')
+      router.push('/property/my-properties')
       return
     }
 
@@ -147,7 +143,7 @@ export default function EditProperty() {
             name: doc.name,
             url: doc.url
           })),
-          walletAddress: address, // For ownership verification
+          // Ownership verified via session (API uses auth)
         }),
       })
 
@@ -171,7 +167,7 @@ export default function EditProperty() {
     }
   }
 
-  if (loading) {
+  if (loading || sessionLoading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center py-12">
@@ -187,8 +183,22 @@ export default function EditProperty() {
         <div className="text-center py-12">
           <h2 className="text-2xl font-bold mb-2 text-foreground">Property Not Found</h2>
           <p className="text-muted-foreground mb-4">The property you're looking for doesn't exist</p>
-          <Link href="/my-properties">
+          <Link href="/property/my-properties">
             <Button>Back to My Properties</Button>
+          </Link>
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  if (!session?.user) {
+    return (
+      <DashboardLayout>
+        <div className="text-center py-12">
+          <h2 className="text-2xl font-bold mb-4">Sign in to edit</h2>
+          <p className="text-muted-foreground mb-6">Please sign in to edit this property. No wallet required.</p>
+          <Link href="/login">
+            <Button>Sign in</Button>
           </Link>
         </div>
       </DashboardLayout>
@@ -204,7 +214,7 @@ export default function EditProperty() {
       <div className="space-y-8">
         {/* Header */}
         <div className="flex items-center gap-4">
-          <Link href="/my-properties">
+          <Link href="/property/my-properties">
             <Button variant="ghost" size="icon">
               <ArrowLeft className="w-4 h-4" />
             </Button>

@@ -139,3 +139,64 @@
 .animate-marquee-vertical {
   animation: marquee-vertical var(--duration, 40s) linear infinite;
 }
+
+@media print {
+  :root,
+  .dark {
+    /* Force light theme colors for print so text/borders are visible */
+    --background: #ffffff;
+    --foreground: #000000;
+    --card: #ffffff;
+    --card-foreground: #000000;
+    --popover: #ffffff;
+    --popover-foreground: #000000;
+    --primary: #000000;
+    --primary-foreground: #ffffff;
+    --secondary: #f3f3f3;
+    --secondary-foreground: #000000;
+    --muted: #f3f3f3;
+    --muted-foreground: #333333;
+    --accent: #000000;
+    --accent-foreground: #ffffff;
+    --destructive: #b91c1c;
+    --destructive-foreground: #ffffff;
+    --border: #d4d4d4;
+    --input: #f9f9f9;
+    --ring: #000000;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  header,
+  footer,
+  nav,
+  .no-print {
+    display: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+  }
+
+  section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .print-section {
+    page-break-after: always;
+  }
+
+  .print-section:last-child {
+    page-break-after: auto;
+  }
+
+  /* Ensure animated content is fully visible on all pages */
+  .animation-print-reset {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

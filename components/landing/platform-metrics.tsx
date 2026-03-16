@@ -28,7 +28,7 @@ export default function PlatformMetrics() {
             <p className="text-sm md:text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto">Join thousands who trust our platform to streamline operations and grow.</p>
           </AnimationContainer>
           <AnimationContainer animation="fadeUp" delay={0.5}>
-            <Link href="/dashboard">
+            <Link href="/invest/dashboard">
               <Button className="mt-4">Start your journey</Button>
             </Link>
           </AnimationContainer>

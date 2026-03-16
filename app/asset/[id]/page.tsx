@@ -158,7 +158,7 @@ export default function PropertyDetailPage() {
           <Building2 className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
           <h2 className="text-2xl font-bold mb-2 text-foreground">Property Not Found</h2>
           <p className="text-muted-foreground mb-4">The property you're looking for doesn't exist</p>
-          <Link href="/marketplace">
+          <Link href="/invest/marketplace">
             <Button>Browse Marketplace</Button>
           </Link>
         </div>
@@ -185,7 +185,7 @@ export default function PropertyDetailPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Back Button */}
-        <Link href="/marketplace">
+        <Link href="/invest/marketplace">
           <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-foreground">
             <ArrowLeft className="w-4 h-4" />
             Back to Marketplace
