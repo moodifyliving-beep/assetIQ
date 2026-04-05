@@ -7,9 +7,30 @@ import { prismaAdapter } from "better-auth/adapters/prisma"
 // The Prisma middleware in lib/prisma.ts will handle sanitizing invalid MongoDB ObjectIDs
 const adapter = prismaAdapter(prisma, {})
 
+/** Same site on www and apex must both be trusted or Better Auth returns 403 on POST /sign-in/email. */
+function alternatePublicOrigins(baseUrl: string): string[] {
+  try {
+    const u = new URL(baseUrl)
+    const host = u.hostname
+    if (host === "localhost" || host === "127.0.0.1") {
+      return []
+    }
+    const altHost = host.startsWith("www.") ? host.slice(4) : `www.${host}`
+    if (!altHost || altHost === host) {
+      return []
+    }
+    return [`${u.protocol}//${altHost}`]
+  } catch {
+    return []
+  }
+}
+
+const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+
 export const auth = betterAuth({
   database: adapter,
-  baseURL: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+  baseURL: appBaseUrl,
+  trustedOrigins: alternatePublicOrigins(appBaseUrl),
   basePath: "/api/auth",
   secret: process.env.BETTER_AUTH_SECRET || process.env.AUTH_SECRET || "change-this-secret-in-production",
   emailAndPassword: {
